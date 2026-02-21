@@ -6,7 +6,7 @@
 @section('content')
 
         <!--Page Header Start-->
-        <section class="page-header">
+         <!-- <section class="page-header">
             <div class="page-header__bg" style="background-image: url(assets/images/backgrounds/page-header-bg.jpg);">
             </div>
             <div class="page-header__social">
@@ -30,11 +30,11 @@
                     </div>
                 </div>
             </div>
-        </section>
+        </section> -->
         <!--Page Header End-->
 
         <!--About Two Start -->
-       <section class="about-two about-page">
+ <section class="about-two about-page" style="margin-top: 100px;">
     <div class="about-two__shape-1 float-bob-y">
         <img src="assets/images/shapes/about-two-shape-1.png" alt="">
     </div>

@@ -6,35 +6,11 @@
 
 @section('content')
         <!--Page Header Start-->
-        <section class="page-header">
-            <div class="page-header__bg" style="background-image: url(assets/images/backgrounds/page-header-bg.jpg);">
-            </div>
-            <div class="page-header__social">
-                <a href="#">LinkedIn</a>
-                <a href="#">Pinterest</a>
-                <a href="#">twitter-x</a>
-                <a href="#">facebook</a>
-            </div>
-            <div class="container">
-                <div class="page-header__inner">
-                    <div class="page-header__img-1">
-                        <img src="assets/images/resources/page-header-img-1.jpg" alt="">
-                    </div>
-                    <h2>Services</h2>
-                    <div class="thm-breadcrumb__box">
-                        <ul class="thm-breadcrumb list-unstyled">
-                            <li><a href="index.html">Home</a></li>
-                            <li><span class="icon-arrow-right"></span></li>
-                            <li>Services</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </section>
+        
         <!--Page Header End-->
 
         <!--Services Two Start -->
-        <section class="services-two services-page">
+        <section class="services-two services-page" style="margin-top: 185px;">
     <div class="services-two__shape-bg-1"
         style="background-image: url(assets/images/shapes/services-two-shape-bg-1.png);"></div>
     <div class="services-two__shape-bg-2"
