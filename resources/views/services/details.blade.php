@@ -26,11 +26,7 @@
                         cleaning products to ensure 100% customer satisfaction.
                     </p>
 
-                    <div class="services-details__img-box">
-                        <div class="services-details__img">
-                            <img src="{{ asset($service['image']) }}" alt="{{ $service['title'] }}">
-                        </div>
-                    </div>
+                    
 
                     <h3 class="services-details__title-2">Services Core Features</h3>
 
@@ -115,34 +111,82 @@
                         </ul>
                     </div>
 
-                    <div class="project-details__get-touch">
+                    <div class="services-details__img-box"
+     style="display: flex; justify-content: flex-start;">
 
-                        <div class="project-details__get-touch-img-1">
-                            <img src="{{ asset('assets/images/project/project-details-get-touch-img-1.jpg') }}" alt="">
-                        </div>
+    <div class="services-details__img">
+        <img src="{{ asset($service['image']) }}" 
+             alt="{{ $service['title'] }}"
+             style="width: 350px; max-width: 550px; height: 280px;">
+    </div>
 
-                        <h3 class="project-details__get-touch-title">
-                            Feel free to reach out to us anytime.
-                        </h3>
+</div>
 
-                        <div class="project-details__get-touch-btn-box">
-                            <a href="{{ url('/contact') }}" class="thm-btn">
-                                Contact Us
-                                <span><i class="icon-diagonal-arrow"></i></span>
-                            </a>
-                        </div>
+<br>
+<br>
 
-                        <div class="project-details__call-box">
-                            <div class="project-details__call-icon">
-                                <span class="icon-support"></span>
-                            </div>
-                            <div class="project-details__call-content">
-                                <p>Call Us To Take this service</p>
-                                <a href="tel:+923001234567">+92 300 1234567</a>
-                            </div>
-                        </div>
 
-                    </div>
+<div class="project-details__get-touch" 
+     style="position: relative;
+            padding: 25px 25px;
+            border-radius: 18px;
+            background: #0064AB;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.08);
+            text-align: center;
+            overflow: hidden;">
+
+    <h3 class="project-details__get-touch-title"
+        style="font-size: 22px;
+               font-weight: 600;
+               color: #ffffff;
+               margin: 0 0 12px 0;
+               line-height: 1.4;">
+        Feel free to reach out to us anytime.
+    </h3>
+
+    <div class="project-details__get-touch-btn-box" style="margin: 0 0 12px 0;">
+        <a href="{{ url('/contact') }}" class="thm-btn"
+           style="display: inline-flex;
+                  align-items: center;
+                  gap: 8px;
+                  padding: 10px 22px;
+                  border-radius: 30px;
+                  font-size: 14px;
+                  font-weight: 500;
+                  text-decoration: none;">
+            Contact Us
+            <span><i class="icon-diagonal-arrow"></i></span>
+        </a>
+    </div>
+
+    <div class="project-details__call-box"
+         style="display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                padding: 12px;
+                border-radius: 12px;
+                background: #f9f9f9;
+                margin: 0;">
+
+        <div class="project-details__call-icon"
+             style="font-size: 20px; color: #000;">
+            <span class="icon-support" style="color: #000;"></span>
+        </div>
+
+        <div class="project-details__call-content">
+            <p style="font-size: 13px; margin: 0; color: #000;">
+                Call Us To Take this service
+            </p>
+            <a href="tel:+923001234567"
+               style="font-size: 15px; font-weight: 600; color: #222; text-decoration: none;">
+                +92 300 1234567
+            </a>
+        </div>
+
+    </div>
+
+</div>
 
                 </div>
             </div>
