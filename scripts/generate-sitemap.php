@@ -4,228 +4,117 @@
 /**
  * Sitemap Generator for Karachi Cleaners
  * 
- * Generates XML sitemap following Google sitemap standards
- * - Last modified dates from file timestamps
- * - Change frequency based on page type
- * - Priority based on page importance
- * - Max 50,000 URLs per file (not needed for small sites)
- * 
- * Usage: php scripts/generate-sitemap.php
+ * Generates sitemap.xml from actual routes and cleaning services
+ * Reads from config/cleaning-services.php
  */
 
 class SitemapGenerator
 {
-    private $baseUrl;
-    private $config;
-    private $pages = [];
-    private $sitemapPath;
-    private $publicPath;
+    private $baseUrl = 'https://karachicleaners.com';
+    private $outputPath = __DIR__ . '/../public/sitemap.xml';
+    private $cleaningServices = [];
     
     public function __construct()
     {
-        $this->config = require __DIR__ . '/../config/seo-config.php';
-        $this->baseUrl = rtrim($this->config['website']['url'], '/');
-        $this->sitemapPath = __DIR__ . '/../public/sitemap.xml';
-        $this->publicPath = __DIR__ . '/../public';
+        // Load cleaning services config
+        $configPath = __DIR__ . '/../config/cleaning-services.php';
         
-        // Create public directory if it doesn't exist
-        if (!is_dir($this->publicPath)) {
-            mkdir($this->publicPath, 0755, true);
+        if (!file_exists($configPath)) {
+            throw new Exception("Config file not found: $configPath");
         }
+        
+        $this->cleaningServices = require $configPath;
     }
     
     /**
-     * Generate complete sitemap with all pages
+     * Generate the sitemap
      */
     public function generate()
     {
-        echo "🗺️  Generating Sitemap for: {$this->baseUrl}\n";
-        echo str_repeat("=", 60) . "\n";
+        echo "🗺️  Generating sitemap.xml...\n";
         
-        // Collect all pages
-        $this->collectPages();
+        // Create the XML
+        $xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
         
-        // Validate pages
-        if (empty($this->pages)) {
-            echo "❌ Error: No pages found to include in sitemap\n";
-            return false;
-        }
-        
-        echo "✅ Found " . count($this->pages) . " pages\n";
-        
-        // Generate XML
-        $xml = $this->generateXml();
-        
-        // Save sitemap
-        if ($this->saveSitemap($xml)) {
-            echo "✅ Sitemap saved to: {$this->sitemapPath}\n";
-            echo "📊 Sitemap size: " . number_format(strlen($xml)) . " bytes\n";
-            echo "🔗 URL: {$this->baseUrl}/sitemap.xml\n";
-            echo "\n";
-            return true;
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Collect all pages from configuration
-     */
-    private function collectPages()
-    {
-        $configPages = $this->config['pages'] ?? [];
-        
-        foreach ($configPages as $route => $pageConfig) {
-            $this->pages[] = [
-                'loc' => $this->baseUrl . $route,
-                'lastmod' => $this->getLastModified($route),
-                'changefreq' => $this->getChangeFrequency($pageConfig),
-                'priority' => $this->getPriority($pageConfig),
-                'route' => $route,
-            ];
-        }
-        
-        // Sort by priority (descending)
-        usort($this->pages, function($a, $b) {
-            return $b['priority'] <=> $a['priority'];
-        });
-    }
-    
-    /**
-     * Get last modified date for page
-     */
-    private function getLastModified($route)
-    {
-        // Try to find corresponding view file
-        $viewFile = $this->publicPath . '/' . trim($route, '/') . '/index.html';
-        
-        if (file_exists($viewFile)) {
-            return date('Y-m-d', filemtime($viewFile));
-        }
-        
-        // Default to today
-        return date('Y-m-d');
-    }
-    
-    /**
-     * Get change frequency based on page type
-     */
-    private function getChangeFrequency($pageConfig)
-    {
-        $pageType = $pageConfig['page_type'] ?? 'service';
-        
-        $frequencies = [
-            'service' => 'weekly',      // Service pages updated regularly
-            'blog' => 'weekly',         // Blog posts updated regularly
-            'conversion' => 'monthly',  // Contact/pricing pages change less
-            'info' => 'monthly',        // About/FAQ pages stable
-            'landing' => 'monthly',     // Landing pages stable
+        // Add static pages
+        $staticPages = [
+            '/' => ['priority' => 0.9, 'changefreq' => 'monthly', 'label' => 'Home'],
+            '/about' => ['priority' => 0.7, 'changefreq' => 'monthly', 'label' => 'About'],
+            '/services' => ['priority' => 0.85, 'changefreq' => 'weekly', 'label' => 'Services'],
+            '/gallery' => ['priority' => 0.6, 'changefreq' => 'weekly', 'label' => 'Gallery'],
+            '/contact' => ['priority' => 0.9, 'changefreq' => 'monthly', 'label' => 'Contact'],
+            '/blog' => ['priority' => 0.6, 'changefreq' => 'weekly', 'label' => 'Blog'],
         ];
         
-        return $frequencies[$pageType] ?? 'weekly';
-    }
-    
-    /**
-     * Get priority based on page type and business logic
-     */
-    private function getPriority($pageConfig)
-    {
-        $pageType = $pageConfig['page_type'] ?? 'service';
-        $route = $pageConfig['route'] ?? '';
-        
-        // Priority mapping
-        $priorities = [
-            'service' => 0.8,    // Service pages are important
-            'conversion' => 0.9, // Contact/booking is highest priority
-            'blog' => 0.6,       // Blog secondary
-            'info' => 0.7,       // About/info pages
-            'landing' => 0.85,   // Landing pages high priority
-        ];
-        
-        $priority = $priorities[$pageType] ?? 0.5;
-        
-        // Boost homepage priority
-        if ($route === '/' || $route === '/index') {
-            $priority = 1.0;
+        echo "\n📄 Adding Static Pages:\n";
+        foreach ($staticPages as $route => $data) {
+            $this->addUrl($xml, $route, $data['priority'], $data['changefreq']);
+            echo "   ✅ {$data['label']} ($route)\n";
         }
         
-        return $priority;
-    }
-    
-    /**
-     * Generate XML sitemap content
-     */
-    private function generateXml()
-    {
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' . "\n";
-        $xml .= '         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' . "\n";
-        $xml .= '         xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0">' . "\n";
-        
-        // Add pages
-        foreach ($this->pages as $page) {
-            $xml .= $this->generateUrlElement($page);
+        // Add service pages from config
+        echo "\n🔧 Adding Service Pages:\n";
+        foreach ($this->cleaningServices as $slug => $service) {
+            $route = '/services/' . $slug;
+            $this->addUrl($xml, $route, 0.8, 'weekly');
+            echo "   ✅ {$service['name']} ($route)\n";
         }
         
-        $xml .= '</urlset>' . "\n";
+        // Save the XML
+        $this->saveXml($xml);
         
-        return $xml;
+        echo "\n✅ Sitemap generated successfully!\n";
+        echo "📊 Total URLs: " . count($xml->url) . "\n";
+        echo "💾 Saved to: {$this->outputPath}\n";
+        
+        return true;
     }
     
     /**
-     * Generate single URL element
+     * Add a URL to the sitemap
      */
-    private function generateUrlElement($page)
+    private function addUrl($xml, $path, $priority = 0.5, $changefreq = 'weekly')
     {
-        $url = "\t<url>\n";
-        $url .= "\t\t<loc>" . htmlspecialchars($page['loc'], ENT_XML1, 'UTF-8') . "</loc>\n";
-        $url .= "\t\t<lastmod>" . $page['lastmod'] . "</lastmod>\n";
-        $url .= "\t\t<changefreq>" . $page['changefreq'] . "</changefreq>\n";
-        $url .= "\t\t<priority>" . $page['priority'] . "</priority>\n";
-        $url .= "\t</url>\n";
-        
-        return $url;
+        $url = $xml->addChild('url');
+        $url->addChild('loc', $this->baseUrl . $path);
+        $url->addChild('lastmod', date('Y-m-d'));
+        $url->addChild('changefreq', $changefreq);
+        $url->addChild('priority', number_format($priority, 1));
     }
     
     /**
-     * Save sitemap to file
+     * Save the XML to file
      */
-    private function saveSitemap($xml)
+    private function saveXml($xml)
     {
-        try {
-            file_put_contents($this->sitemapPath, $xml);
-            return true;
-        } catch (Exception $e) {
-            echo "❌ Error saving sitemap: " . $e->getMessage() . "\n";
-            return false;
+        // Ensure public directory exists
+        $publicDir = dirname($this->outputPath);
+        if (!is_dir($publicDir)) {
+            mkdir($publicDir, 0755, true);
         }
-    }
-    
-    /**
-     * Get sitemap statistics
-     */
-    public function getStats()
-    {
-        return [
-            'total_urls' => count($this->pages),
-            'base_url' => $this->baseUrl,
-            'path' => $this->sitemapPath,
-            'pages' => $this->pages,
-        ];
+        
+        // Format the XML nicely
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $dom->preserveWhiteSpace = false;
+        $dom->formatOutput = true;
+        $dom->loadXML($xml->asXML());
+        
+        // Save to file
+        $dom->save($this->outputPath);
+        
+        // Verify
+        if (!file_exists($this->outputPath)) {
+            throw new Exception("Failed to save sitemap: {$this->outputPath}");
+        }
     }
 }
 
-// Run sitemap generation
-$generator = new SitemapGenerator();
-if ($generator->generate()) {
-    $stats = $generator->getStats();
-    echo "📋 Sitemap Details:\n";
-    echo "   • Total URLs: " . $stats['total_urls'] . "\n";
-    echo "   • Base URL: " . $stats['base_url'] . "\n";
-    echo "   • Path: " . $stats['path'] . "\n";
-    echo "\n✅ Sitemap generation complete!\n";
-    exit(0);
-} else {
-    echo "\n❌ Sitemap generation failed!\n";
+// Run the generator
+try {
+    $generator = new SitemapGenerator();
+    $generator->generate();
+    echo "\n🎉 Sitemap generation complete!\n\n";
+} catch (Exception $e) {
+    echo "❌ Error: " . $e->getMessage() . "\n";
     exit(1);
 }
