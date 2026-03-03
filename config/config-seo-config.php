@@ -36,85 +36,49 @@ return [
     
     'pages' => [
         
-        '/sofa-cleaning' => [
-            'service' => 'Sofa Cleaning',
-            'title' => 'Sofa Cleaning',
-            'description' => 'Professional sofa cleaning services in Karachi. Expert stain removal, couch cleaning, upholstery shampoo. Book same-day service.',
-            'primary_keyword' => 'sofa cleaning',
-            'secondary_keywords' => ['upholstery cleaning', 'furniture cleaning', 'sofa stain removal', 'fabric cleaning'],
-            'page_type' => 'service',
-        ],
-        
         '/carpet-cleaning' => [
             'service' => 'Carpet Cleaning',
-            'title' => 'Carpet Cleaning',
-            'description' => 'Best carpet cleaning services in Karachi. Deep clean, stain removal, and sanitizing for all types of carpets. Affordable rates. Call now!',
+            'title' => 'Professional Carpet Cleaning in Karachi',
+            'description' => 'Expert carpet cleaning service',
             'primary_keyword' => 'carpet cleaning',
             'secondary_keywords' => ['rug cleaning', 'deep carpet clean', 'stain removal', 'carpet restoration'],
             'page_type' => 'service',
         ],
         
-        '/curtain-cleaning' => [
-            'service' => 'Curtain Cleaning',
-            'title' => 'Curtain Cleaning',
-            'description' => 'Top-rated curtain cleaning services in Karachi. We clean all types of curtains, blinds, and drapes. Remove dust, allergens, and stains.',
-            'primary_keyword' => 'curtain cleaning',
-            'secondary_keywords' => ['blind cleaning', 'drape cleaning', 'curtain washing', 'curtain laundry service'],
+        '/sofa-cleaning' => [
+            'service' => 'Sofa Cleaning',
+            'title' => 'Best Sofa Cleaning Services in Karachi',
+            'description' => 'Professional sofa and upholstery cleaning',
+            'primary_keyword' => 'sofa cleaning',
+            'secondary_keywords' => ['upholstery cleaning', 'furniture cleaning', 'sofa stain removal', 'fabric cleaning'],
             'page_type' => 'service',
         ],
         
-        '/glass-cleaning' => [
-            'service' => 'Glass Cleaning',
-            'title' => 'Glass Cleaning',
-            'description' => 'Professional glass cleaning services in Karachi for homes and offices. Streak-free windows, glass doors, and building facades.',
-            'primary_keyword' => 'glass cleaning',
-            'secondary_keywords' => ['window cleaning', 'professional window cleaner', 'storefront glass cleaning'],
+        '/deep-cleaning' => [
+            'service' => 'Deep Cleaning',
+            'title' => 'Deep Home & Office Cleaning Services Karachi',
+            'description' => 'Comprehensive deep cleaning for homes and offices',
+            'primary_keyword' => 'deep cleaning',
+            'secondary_keywords' => ['home deep clean', 'office deep cleaning', 'thorough cleaning', 'move-out cleaning'],
             'page_type' => 'service',
         ],
         
-        '/floor-tile-cleaning' => [
-            'service' => 'Floor & Tile Cleaning',
-            'title' => 'Floor & Tile Cleaning',
-            'description' => 'Expert floor and tile cleaning services in Karachi. We clean marble, tiles, grout, and all hard floors. Restore shine and hygiene.',
-            'primary_keyword' => 'floor tile cleaning',
-            'secondary_keywords' => ['marble floor cleaning', 'grout cleaning', 'floor polishing', 'marble polishing'],
+        '/office-cleaning' => [
+            'service' => 'Office Cleaning',
+            'title' => 'Professional Office Cleaning Services Karachi',
+            'description' => 'Expert office and commercial cleaning',
+            'primary_keyword' => 'office cleaning',
+            'secondary_keywords' => ['commercial cleaning', 'workspace cleaning', 'corporate cleaning'],
             'page_type' => 'service',
         ],
         
-        '/solar-panel-cleaning' => [
-            'service' => 'Solar Panel Cleaning',
-            'title' => 'Solar Panel Cleaning',
-            'description' => 'Professional solar panel cleaning in Karachi. Remove dust and dirt to maximise energy output. Safe, eco-friendly cleaning solutions.',
-            'primary_keyword' => 'solar panel cleaning',
-            'secondary_keywords' => ['solar panel wash', 'solar panel maintenance', 'energy efficiency'],
+        '/window-cleaning' => [
+            'service' => 'Window Cleaning',
+            'title' => 'Professional Window Cleaning in Karachi',
+            'description' => 'Expert window and glass cleaning',
+            'primary_keyword' => 'window cleaning',
+            'secondary_keywords' => ['glass cleaning', 'window washing', 'professional window cleaner'],
             'page_type' => 'service',
-        ],
-        
-        '/full-house-cleaning' => [
-            'service' => 'Full House Cleaning',
-            'title' => 'Full House Cleaning',
-            'description' => 'Complete house cleaning services in Karachi. Deep cleaning for entire homes – bedrooms, kitchens, bathrooms, living areas. Book trusted cleaners.',
-            'primary_keyword' => 'full house cleaning',
-            'secondary_keywords' => ['home cleaning', 'deep cleaning', 'residential cleaning', 'complete home cleaning'],
-            'page_type' => 'service',
-        ],
-        
-        '/car-interior-cleaning' => [
-            'service' => 'Car Interior Cleaning',
-            'title' => 'Car Interior Cleaning',
-            'description' => 'Premium car interior cleaning and detailing in Karachi. Upholstery shampoo, carpet cleaning, dashboard polishing, and odor removal.',
-            'primary_keyword' => 'car interior cleaning',
-            'secondary_keywords' => ['car detailing', 'car upholstery cleaning', 'car deep cleaning', 'auto cleaning'],
-            'page_type' => 'service',
-        ],
-        
-        '/services' => [
-            'service' => 'Services',
-            'title' => 'Cleaning Services in Karachi',
-            'description' => 'Explore all professional cleaning services in Karachi. From carpet to solar panel cleaning.',
-            'primary_keyword' => 'cleaning services',
-            'secondary_keywords' => ['professional cleaning', 'cleaning company karachi'],
-            'page_type' => 'catalog',
         ],
         
         '/about' => [
@@ -133,6 +97,15 @@ return [
             'primary_keyword' => 'contact cleaning service',
             'secondary_keywords' => ['book cleaning', 'schedule service', 'get quote'],
             'page_type' => 'conversion',
+        ],
+        
+        '/blog' => [
+            'service' => 'Blog',
+            'title' => 'Cleaning Tips & Articles | Karachi Cleaners Blog',
+            'description' => 'Expert cleaning tips and industry articles',
+            'primary_keyword' => 'cleaning tips',
+            'secondary_keywords' => ['how to clean', 'cleaning guide', 'home care tips'],
+            'page_type' => 'blog',
         ],
     ],
     
@@ -243,7 +216,7 @@ return [
     'trending' => [
         'enabled' => true,
         'check_frequency' => 'weekly',
-        'regions' => ['PK','IN'],  // Pakistan, South Africa, India
+        'regions' => ['PK', 'ZA', 'IN'],  // Pakistan, South Africa, India
         'update_content' => true,
         'trending_keywords' => [
             'eco-friendly cleaning',
@@ -261,8 +234,8 @@ return [
     
     'local_seo' => [
         'business_name' => 'Karachi Cleaners',
-        'phone' => '+92-321-5955791',
-        'email' => 'karachicleaners@gmail.com',
+        'phone' => '+92-XXX-XXXXXXX',
+        'email' => 'contact@karachicleaners.com',
         'address' => 'Karachi, Pakistan',
         'city' => 'Karachi',
         'country' => 'Pakistan',
