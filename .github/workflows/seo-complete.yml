@@ -134,6 +134,17 @@ jobs:
           echo "🔥 Fetching trending topics..."
           python scripts/get-trends.py || echo "⚠️ Trends fetch had issues, continuing..."
           echo "✅ Trending topics retrieved"
+
+      - name: 🧪 Test API Connection
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        run: |
+          echo "Testing Claude API..."
+          php scripts/test-api-simple.php
+          echo "Test complete"
+          echo ""
+          echo "Checking for log files:"
+          ls -la storage/seo-logs/
       
       - name: ✨ Apply AI Optimizations
         env:
