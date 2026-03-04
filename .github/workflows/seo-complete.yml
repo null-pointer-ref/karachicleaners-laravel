@@ -1,45 +1,36 @@
 name: SEO Optimization & Sitemap Generation
 
 on:
-  schedule:
-    # Every Monday at 2 AM UTC (7:30 AM PKT)
-    - cron: '0 2 * * 1'
-  
-  # Allow manual trigger from Actions tab
-  workflow_dispatch:
-  
-  # Trigger on pushes to main (for sitemap/robots generation)
   push:
     branches:
       - main
     paths:
-      - 'config/seo-config.php'
-      - 'resources/keywords.csv'
-      - '.github/workflows/*.yml'
-
-permissions:
-  contents: write
-  pull-requests: write
-  actions: read
+      - 'config/**'
+      - 'resources/**'
+      - 'routes/**'
+      - '.github/workflows/**'
+  schedule:
+    - cron: '30 2 * * 1'  # Monday 2:30 AM UTC (7:30 AM PKT)
+  workflow_dispatch:
 
 env:
-  PHP_VERSION: '8.2'
-  PYTHON_VERSION: '3.11'
+  PHP_VERSION: 8.2
+  PYTHON_VERSION: 3.11
 
 jobs:
-  
   generate-sitemap-robots:
     name: Generate Sitemap & robots.txt
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+      pull-requests: write
+
     steps:
-      
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: 🐘 Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -47,13 +38,14 @@ jobs:
           extensions: curl, json, mbstring, xml
           tools: composer
           coverage: none
-      
-      - name: 📝 Create Public Directory
+          ini-file: production
+
+      - name: 📁 Create Public Directory
         run: |
           mkdir -p public
           chmod 755 public
-      
-      - name: 🗺️ Generate Sitemap
+
+      - name: 🗺️ Generate sitemap.xml
         run: |
           echo "🗺️ Generating sitemap.xml..."
           php scripts/generate-sitemap.php
@@ -67,7 +59,7 @@ jobs:
             echo "❌ Sitemap not found"
             exit 1
           fi
-      
+
       - name: 🤖 Generate robots.txt
         run: |
           echo "🤖 Generating robots.txt..."
@@ -77,81 +69,41 @@ jobs:
           if [ -f public/robots.txt ]; then
             echo "✅ robots.txt created successfully"
             ls -lh public/robots.txt
-            head -n 30 public/robots.txt
+            cat public/robots.txt
           else
             echo "❌ robots.txt not found"
             exit 1
           fi
-      
-      - name: 📊 Verify Generated Files
+
+      - name: 📝 Commit Generated Files (if changed)
         run: |
-          echo "📊 Verification Report:"
-          echo "========================"
-          echo ""
-          echo "📂 Files in public directory:"
-          ls -lh public/
-          echo ""
-          echo "📄 Sitemap.xml validation:"
-          if [ -f public/sitemap.xml ]; then
-            # Check if XML is valid
-            php -r "
-              \$xml = simplexml_load_file('public/sitemap.xml');
-              if (\$xml === false) {
-                echo '❌ Invalid XML';
-                exit(1);
-              }
-              \$urls = \$xml->url;
-              echo '✅ Valid XML with ' . count(\$urls) . ' URLs';
-            " && echo "" || echo "⚠️ Could not validate XML"
-          fi
-          echo ""
-          echo "📄 robots.txt content:"
-          if [ -f public/robots.txt ]; then
-            wc -l public/robots.txt
-            echo "✅ robots.txt validated"
-          fi
-      
-      - name: 🔍 Check for Changes
-        id: git-check
-        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Check if there are changes
           if git diff --quiet public/; then
-            echo "status=no-changes" >> $GITHUB_OUTPUT
-            echo "No changes in public files"
+            echo "✅ No changes to commit"
           else
-            echo "status=has-changes" >> $GITHUB_OUTPUT
-            echo "Changes detected in public files"
-            git diff --stat public/
+            echo "📝 Committing changes..."
+            git add public/sitemap.xml public/robots.txt
+            git commit -m "🤖 Auto-update: sitemap and robots.txt [skip ci]"
+            git push origin main
+            echo "✅ Changes pushed"
           fi
-      
-      - name: 📤 Commit Sitemap & robots.txt
-        if: steps.git-check.outputs.status == 'has-changes'
-        run: |
-          git config user.name "🤖 SEO Bot"
-          git config user.email "seo-bot@karachicleaners.com"
-          git add public/sitemap.xml public/robots.txt
-          git commit -m "🗺️ Update sitemap.xml & robots.txt - $(date +'%Y-%m-%d %H:%M:%S')"
-          git log --oneline -1
-      
-      - name: 📤 Push Changes
-        if: steps.git-check.outputs.status == 'has-changes'
-        run: |
-          git push origin main
-          echo "✅ Changes pushed to main"
 
   seo-scan:
-    name: Run SEO Scanner & Optimizer
+    name: SEO Scan & Optimization
     runs-on: ubuntu-latest
-    # Only run if it's scheduled (not on every push)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    
+    needs: generate-sitemap-robots
+    if: success() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: write
+      pull-requests: write
+
     steps:
-      
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: 🐘 Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -159,205 +111,70 @@ jobs:
           extensions: curl, json, mbstring, xml
           tools: composer
           coverage: none
-      
-      - name: 🐍 Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-      
-      - name: 📦 Install Python Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytrends requests
-      
-      - name: 📦 Install Composer Dependencies
-        run: |
-          composer install --no-interaction --prefer-dist --no-progress || true
-      
-      - name: 📝 Create Storage Directories
+
+      - name: 📁 Create Storage Directories
         run: |
           mkdir -p storage/seo-logs
           mkdir -p storage/seo-backups
           mkdir -p storage/seo-reports
-          mkdir -p public
-          chmod -R 755 storage/ public/
-      
-      - name: 🔐 Set Environment Variables
+          chmod -R 755 storage/
+
+      - name: 🔍 Scan Pages for SEO Issues
         run: |
-          echo "CLAUDE_API_KEY=${{ secrets.CLAUDE_API_KEY }}" >> $GITHUB_ENV
-          echo "APP_URL=${{ secrets.APP_URL || 'https://karachicleaners.com' }}" >> $GITHUB_ENV
-      
-      - name: ✅ Validate API Key
+          echo "🔍 Scanning pages for SEO issues..."
+          php scripts/seo-scanner.php > /tmp/scan-output.txt 2>&1
+          cat /tmp/scan-output.txt
+
+      - name: ✨ Optimize Content with AI
         run: |
-          if [ -z "$CLAUDE_API_KEY" ]; then
-            echo "❌ CLAUDE_API_KEY not set in GitHub Secrets"
-            exit 1
-          fi
-          echo "✅ API Key validated"
-      
-      - name: 🔍 Run SEO Scanner
-        env:
-          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
-        run: |
-          echo "🔍 Starting SEO Scan..."
-          php scripts/seo-scanner.php || echo "⚠️ Scanner encountered issues, continuing..."
-          echo "✅ SEO Scan Complete"
-      
-      - name: 🤖 Get Trending Topics
-        run: |
-          echo "🔥 Fetching trending topics..."
-          python scripts/get-trends.py || echo "⚠️ Trends fetch failed, continuing anyway"
-          echo "✅ Trending topics retrieved"
-      
-      - name: ✨ Apply AI Optimizations
-        env:
-          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
-        run: |
-          echo "✨ Applying AI optimizations..."
-          php scripts/apply-optimizations.php || echo "⚠️ Optimization encountered issues"
-          echo "✅ Optimizations applied"
-      
+          echo "✨ Optimizing content with AI..."
+          php scripts/apply-optimizations.php > /tmp/optimize-output.txt 2>&1
+          cat /tmp/optimize-output.txt
+
       - name: 📊 Generate SEO Report
         run: |
-          echo "📊 Generating report..."
-          php scripts/generate-seo-report.php || echo "⚠️ Report generation encountered issues"
-          echo "✅ Report generated"
-      
-      - name: 🗺️ Regenerate Sitemap (Post-Optimization)
-        run: |
-          echo "🗺️ Regenerating sitemap with optimized content..."
-          php scripts/generate-sitemap.php || echo "⚠️ Sitemap regeneration encountered issues"
-          echo "✅ Sitemap regenerated"
-      
-      - name: 📈 Check for Changes
-        id: git-check-seo
-        run: |
-          if git diff --quiet; then
-            echo "status=no-changes" >> $GITHUB_OUTPUT
-            echo "No content changes detected"
-          else
-            echo "status=has-changes" >> $GITHUB_OUTPUT
-            echo "Content changes detected"
-            git diff --stat || true
-          fi
-      
-      - name: 📤 Commit SEO Changes
-        if: steps.git-check-seo.outputs.status == 'has-changes'
-        run: |
-          git config user.name "🤖 SEO Bot"
-          git config user.email "seo-bot@karachicleaners.com"
-          git add -A
-          git commit -m "🔍 Weekly SEO Optimization - $(date +'%Y-%m-%d %H:%M:%S')" || true
-          git log --oneline -1 || true
-      
-      - name: 🔄 Create Pull Request
-        if: steps.git-check-seo.outputs.status == 'has-changes'
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: '🔍 Weekly SEO Optimization'
-          title: '🔍 Weekly SEO Optimization Report'
-          body: |
-            ## 📊 Weekly SEO Optimization Report
-            
-            **Timestamp:** Generated at workflow execution  
-            **Triggered by:** Automated Weekly Scan
-            
-            ### 📋 Changes Made
-            - ✨ AI-optimized meta tags and titles
-            - 🔥 Incorporated trending topics
-            - 🎯 Keyword optimization
-            - 📱 Social media metadata updated
-            - 🗺️ Sitemap regenerated with optimized content
-            - 🤖 robots.txt updated
-            
-            ### ⚙️ Optimization Details
-            - **Pages Scanned:** All configured pages
-            - **Keywords Used:** From `resources/keywords.csv`
-            - **Trending Topics:** Latest from Google Trends (Pakistan)
-            - **AI Model:** Claude 3.5 Haiku
-            - **Sitemap:** Generated from `config/seo-config.php`
-            
-            ### 📈 What to Check
-            1. Review title changes (keep under 60 characters)
-            2. Check meta descriptions (120-160 characters)
-            3. Verify keyword relevance
-            4. Review content additions for natural fit
-            5. Check social media preview
-            6. Verify sitemap URLs are correct
-            
-            ### 🚀 To Deploy
-            1. Review changes carefully
-            2. Test locally if needed
-            3. Click **Merge pull request**
-            4. Changes deploy automatically to Railway
-            
-            ### 📄 Files Changed
-            - Content pages (titles, descriptions, keywords)
-            - `public/sitemap.xml` (regenerated)
-            - `public/robots.txt` (if configuration changed)
-            
-            ### 📞 Questions?
-            - Check `storage/seo-logs/` for detailed reports
-            - Review `public/sitemap.xml` for URL structure
-            - Check robots.txt for crawl directives
-            
-            ---
-            *This PR was automatically generated by the SEO Automation Bot.*
-          
-          branch: 'seo-optimizations-${{ github.run_id }}'
-          delete-branch: true
-          labels: 'seo, automated, ai-generated'
-      
-      - name: 💾 Upload Artifacts
+          echo "📊 Generating SEO report..."
+          php scripts/generate-seo-report.php > /tmp/report-output.txt 2>&1
+          cat /tmp/report-output.txt
+
+      - name: 📝 Create Pull Request with Optimizations
         if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: seo-scan-results
-          path: |
-            storage/seo-logs/
-            public/sitemap.xml
-            public/robots.txt
-          retention-days: 30
-      
-      - name: 📧 Notify on Success
-        if: success()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: '✅ Weekly SEO Scan Completed!\n📊 Check PR for details\n🗺️ Sitemap & robots.txt updated'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-          fields: repo,message,commit,author,action,eventName,ref
-        continue-on-error: true
-      
-      - name: ⚠️ Notify on Failure
-        if: failure()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: '❌ SEO Scan Failed\n🔧 Check workflow logs for details'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-          fields: repo,message,commit,author,action,eventName,ref
-        continue-on-error: true
+        run: |
+          git config user.name "SEO Bot"
+          git config user.email "seo-bot@github.com"
+          
+          BRANCH="seo-optimization-$(date +%Y%m%d-%H%M%S)"
+          
+          # Check if there are changes
+          if [ -n "$(git status --porcelain)" ]; then
+            git checkout -b $BRANCH
+            git add resources/views/ config/
+git commit -m "♻️ SEO Optimization: Auto-optimized content with AI - Updated meta tags - Optimized titles and descriptions - Integrated trending keywords - Improved keyword coverage - Enhanced for Pakistan cleaning market"
+git push origin $BRANCH
+            
+            echo "✅ Changes committed to branch: $BRANCH"
+            echo "📌 Pull request will be created (manually review and merge)"
+          else
+            echo "✅ No content changes needed"
+          fi
 
   validate-all:
     name: Validate All Changes
     runs-on: ubuntu-latest
+    needs: generate-sitemap-robots
     if: always()
-    
+
     steps:
-      
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
-      
+
       - name: 🐘 Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: curl, json, xml
-      
-      - name: ✅ Validate Sitemap XML
+
+      - name: ✅ Validate sitemap.xml
         run: |
           echo "Validating sitemap.xml..."
           if [ -f public/sitemap.xml ]; then
@@ -373,8 +190,8 @@ jobs:
           else
             echo "⚠️ sitemap.xml not found (will be created on first run)"
           fi
-      
-      - name: 📄 Validate robots.txt
+
+      - name: ✅ Validate robots.txt
         run: |
           echo "Validating robots.txt..."
           if [ -f public/robots.txt ]; then
@@ -384,8 +201,8 @@ jobs:
           else
             echo "⚠️ robots.txt not found (will be created on first run)"
           fi
-      
-      - name: 📊 Final Summary
+
+      - name: 📊 Workflow Summary
         run: |
           echo "=========================================="
           echo "SEO Automation Workflow Summary"
@@ -398,7 +215,3 @@ jobs:
           [ -f public/robots.txt ] && echo "  • public/robots.txt" || echo "  • public/robots.txt (pending)"
           echo ""
           echo "=========================================="
-
-concurrency:
-  group: seo-automation
-  cancel-in-progress: true
