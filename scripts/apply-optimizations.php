@@ -2,190 +2,256 @@
 <?php
 
 /**
- * Apply SEO Optimizations to Pages
+ * Apply SEO Optimizations from Claude AI
  * 
- * Takes AI-generated optimizations and applies them to page files
- * Updates: titles, meta descriptions, keywords, OG tags
- * 
- * Usage: php scripts/apply-optimizations.php
+ * Updates config/cleaning-services.php with optimized meta tags, titles, descriptions
+ * Uses Claude API to generate optimizations based on keywords
  */
 
-class OptimizationApplier
+class SEOOptimizer
 {
-    private $basePath;
-    private $config;
-    private $changesApplied = 0;
-    private $backupDir;
+    private $baseDir;
+    private $configPath;
+    private $apiKey;
+    private $baseUrl = 'https://karachicleaners.com';
+    private $cleaningServices = [];
     
     public function __construct()
     {
-        $this->basePath = __DIR__ . '/../resources/views/pages';
-        $this->config = require __DIR__ . '/../config/seo-config.php';
-        $this->backupDir = __DIR__ . '/../storage/seo-backups';
+        $this->baseDir = dirname(__DIR__);
+        $this->configPath = $this->baseDir . '/config/cleaning-services.php';
+        $this->apiKey = getenv('CLAUDE_API_KEY');
         
-        if (!is_dir($this->backupDir)) {
-            mkdir($this->backupDir, 0755, true);
+        if (!$this->apiKey) {
+            throw new Exception('CLAUDE_API_KEY environment variable not set');
         }
+        
+        // Load current config
+        if (!file_exists($this->configPath)) {
+            throw new Exception("Config file not found: {$this->configPath}");
+        }
+        
+        $this->cleaningServices = require $this->configPath;
     }
     
     /**
-     * Apply optimizations from latest scan
+     * Optimize all services
      */
-    public function applyOptimizations()
+    public function optimizeAll()
     {
-        echo "✨ Starting to Apply SEO Optimizations\n";
-        echo str_repeat("=", 70) . "\n\n";
+        echo "✨ Starting SEO Optimization...\n";
+        echo "📝 Optimizing service pages with Claude AI\n\n";
         
-        // Get latest scan file
-        $latestScan = $this->getLatestScanFile();
-        if (!$latestScan) {
-            echo "⚠️  No scan results found. Run seo-scanner.php first.\n";
-            return false;
+        $optimizedCount = 0;
+        $totalCount = count($this->cleaningServices);
+        
+        foreach ($this->cleaningServices as $slug => &$service) {
+            echo "🔄 Optimizing: {$service['name']}...\n";
+            
+            try {
+                $optimized = $this->optimizeService($slug, $service);
+                if ($optimized) {
+                    $this->cleaningServices[$slug] = $optimized;
+                    $optimizedCount++;
+                    echo "   ✅ Optimized successfully\n";
+                }
+            } catch (Exception $e) {
+                echo "   ⚠️ Optimization skipped: " . $e->getMessage() . "\n";
+            }
         }
         
-        $scanResults = json_decode(file_get_contents($latestScan), true);
+        echo "\n📊 Optimization Summary:\n";
+        echo "   Total services: {$totalCount}\n";
+        echo "   Optimized: {$optimizedCount}\n";
         
-        // Apply optimizations to each page
-        foreach ($scanResults as $route => $pageData) {
-            echo "📝 Applying optimizations to: {$route}\n";
-            
-            // Create backup
-            $this->createBackup($route);
-            
-            // Apply changes (in real scenario, this would update actual pages)
-            // For now, we log what would be changed
-            $this->logOptimizations($route, $pageData);
-            
-            $this->changesApplied++;
-            echo "   ✅ Optimizations applied\n";
+        // Save optimized config
+        if ($optimizedCount > 0) {
+            $this->saveConfig();
+            echo "\n✅ Optimizations saved to config!\n";
+            return true;
         }
         
-        echo "\n" . str_repeat("=", 70) . "\n";
-        echo "✨ Optimization Complete!\n";
-        echo "📊 Pages Updated: {$this->changesApplied}\n";
-        echo "💾 Backups created in: storage/seo-backups/\n\n";
-        
-        return true;
+        return false;
     }
     
     /**
-     * Get latest scan file
+     * Optimize a single service
      */
-    private function getLatestScanFile()
+    private function optimizeService($slug, $service)
     {
-        $logsDir = __DIR__ . '/../storage/seo-logs';
-        $files = glob($logsDir . '/scan-*.json');
+        $prompt = $this->buildOptimizationPrompt($slug, $service);
         
-        if (empty($files)) {
+        // Call Claude API
+        $response = $this->callClaudeAPI($prompt);
+        
+        if (!$response) {
             return null;
         }
         
-        // Get most recent file
-        usort($files, function($a, $b) {
-            return filemtime($b) - filemtime($a);
-        });
-        
-        return $files[0];
+        // Parse response and update service
+        return $this->parseOptimizationResponse($service, $response);
     }
     
     /**
-     * Create backup of page before changes
+     * Build optimization prompt for Claude
      */
-    private function createBackup($route)
+    private function buildOptimizationPrompt($slug, $service)
     {
-        $route = trim($route, '/');
-        $viewFile = $this->basePath . '/' . $route . '.blade.php';
-        
-        if (file_exists($viewFile)) {
-            $content = file_get_contents($viewFile);
-            $backupFile = $this->backupDir . '/page-' . str_replace('/', '-', $route) . '-' . date('Y-m-d-His') . '.backup';
-            file_put_contents($backupFile, $content);
-        }
+        return <<<PROMPT
+You are an SEO expert optimizing a cleaning services website for Karachi, Pakistan.
+
+Current Service: {$service['name']}
+Current Title: {$service['title']}
+Current Description: {$service['meta_description']}
+Current Keywords: {$service['keywords']}
+URL: {$this->baseUrl}/services/{$slug}
+
+Please optimize the following for better SEO:
+
+1. **Title** - Keep 30-60 characters, include main keyword + location
+2. **Meta Description** - Keep 120-160 characters, compelling and keyword-rich
+3. **Keywords** - Provide 10-15 comma-separated keywords for this service
+4. **Page Description** - 1-2 sentence compelling description for the page
+
+Format your response as JSON only (no markdown, no code blocks):
+{
+  "title": "optimized title here",
+  "meta_description": "optimized meta description here",
+  "keywords": "keyword1, keyword2, keyword3...",
+  "description": "optimized page description here"
+}
+
+Focus on:
+- Karachi, Pakistan location
+- Cleaning service industry
+- High search intent keywords
+- Natural language
+- User engagement
+PROMPT;
     }
     
     /**
-     * Log what optimizations would be applied
+     * Call Claude API
      */
-    private function logOptimizations($route, $pageData)
+    private function callClaudeAPI($prompt)
     {
-        $logsDir = __DIR__ . '/../storage/seo-logs';
-        $logFile = $logsDir . '/optimizations-applied-' . date('Y-m-d-His') . '.txt';
+        $url = 'https://api.anthropic.com/v1/messages';
         
-        $log = "Applied Optimizations\n";
-        $log .= "====================\n\n";
-        $log .= "Route: {$route}\n";
-        $log .= "Service: {$pageData['service']}\n";
-        $log .= "Date: " . date('Y-m-d H:i:s') . "\n\n";
+        $data = [
+            'model' => 'claude-opus-4-1-20250805',
+            'max_tokens' => 500,
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => $prompt
+                ]
+            ]
+        ];
         
-        if (isset($pageData['current_meta'])) {
-            $log .= "CURRENT META TAGS:\n";
-            $log .= "- Title: {$pageData['current_meta']['title']}\n";
-            $log .= "- Description: {$pageData['current_meta']['description']}\n";
-            $log .= "- Keywords: " . implode(', ', (array)$pageData['current_meta']['keywords']) . "\n\n";
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'x-api-key: ' . $this->apiKey,
+                'anthropic-version: 2023-06-01'
+            ],
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_TIMEOUT => 30
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode !== 200) {
+            echo "     API Error (HTTP {$httpCode}): " . substr($response, 0, 100) . "\n";
+            return null;
         }
         
-        if (isset($pageData['issues'])) {
-            $log .= "ISSUES FOUND: " . count($pageData['issues']) . "\n";
-            foreach ($pageData['issues'] as $issue) {
-                $log .= "- [{$issue['severity']}] {$issue['message']}\n";
+        $decoded = json_decode($response, true);
+        
+        if (!isset($decoded['content'][0]['text'])) {
+            return null;
+        }
+        
+        return $decoded['content'][0]['text'];
+    }
+    
+    /**
+     * Parse Claude response and update service
+     */
+    private function parseOptimizationResponse($service, $response)
+    {
+        try {
+            // Try to parse JSON from response
+            $optimized = json_decode($response, true);
+            
+            if (!$optimized) {
+                // Try to extract JSON from text
+                if (preg_match('/\{.*\}/s', $response, $matches)) {
+                    $optimized = json_decode($matches[0], true);
+                }
             }
-            $log .= "\n";
+            
+            if (!$optimized) {
+                return null;
+            }
+            
+            // Update service with optimized content
+            $service['title'] = $optimized['title'] ?? $service['title'];
+            $service['meta_description'] = $optimized['meta_description'] ?? $service['meta_description'];
+            $service['keywords'] = $optimized['keywords'] ?? $service['keywords'];
+            $service['description'] = $optimized['description'] ?? $service['description'];
+            
+            return $service;
+        } catch (Exception $e) {
+            echo "     Parse error: " . $e->getMessage() . "\n";
+            return null;
         }
-        
-        $log .= "STATUS: ✅ Ready for optimization\n\n";
-        
-        file_put_contents($logFile, $log, FILE_APPEND);
     }
     
     /**
-     * Update page meta tags (for real implementation)
+     * Save optimized config
      */
-    private function updatePageMetaTags($route, $optimizedData)
+    private function saveConfig()
     {
-        $route = trim($route, '/');
-        $viewFile = $this->basePath . '/' . $route . '.blade.php';
+        // Create PHP export
+        $php = "<?php\n\nreturn " . var_export($this->cleaningServices, true) . ";\n";
         
-        if (!file_exists($viewFile)) {
-            echo "   ⚠️  View file not found: {$viewFile}\n";
-            return false;
+        // Make it more readable
+        $php = str_replace(['  0 => ', "=> \n  ["], [', ', "=> ["], $php);
+        
+        // Create backup
+        $backupPath = $this->baseDir . '/storage/seo-backups/cleaning-services-' . date('Y-m-d-H-i-s') . '.php';
+        $backupDir = dirname($backupPath);
+        
+        if (!is_dir($backupDir)) {
+            mkdir($backupDir, 0755, true);
         }
         
-        $content = file_get_contents($viewFile);
+        copy($this->configPath, $backupPath);
         
-        // This is a simple example - real implementation would be more sophisticated
-        // and would handle different blade template structures
+        // Save optimized config
+        file_put_contents($this->configPath, $php);
         
-        // Update title
-        if (!empty($optimizedData['title'])) {
-            $content = preg_replace(
-                '/<title>.*?<\/title>/i',
-                '<title>' . htmlspecialchars($optimizedData['title']) . '</title>',
-                $content
-            );
-        }
-        
-        // Update meta description
-        if (!empty($optimizedData['description'])) {
-            $metaTag = '<meta name="description" content="' . htmlspecialchars($optimizedData['description']) . '">';
-            if (preg_match('/<meta name="description".*?>/i', $content)) {
-                $content = preg_replace(
-                    '/<meta name="description".*?>/i',
-                    $metaTag,
-                    $content
-                );
-            } else {
-                $content = str_replace('</head>', $metaTag . "\n</head>", $content);
-            }
-        }
-        
-        file_put_contents($viewFile, $content);
-        
-        return true;
+        echo "\n💾 Backup saved to: storage/seo-backups/\n";
     }
 }
 
-// Run optimization applier
-$applier = new OptimizationApplier();
-$applier->applyOptimizations();
-
-echo "🎉 All optimizations applied successfully!\n";
+// Main execution
+try {
+    echo "🚀 SEO Optimization Script\n";
+    echo "========================\n\n";
+    
+    $optimizer = new SEOOptimizer();
+    $optimizer->optimizeAll();
+    
+    echo "\n✅ Optimization complete!\n";
+    exit(0);
+    
+} catch (Exception $e) {
+    echo "\n❌ Error: " . $e->getMessage() . "\n";
+    exit(1);
+}
