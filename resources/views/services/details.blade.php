@@ -123,7 +123,7 @@
                                     <p style="font-size: 13px; margin: 0; color: #000;">
                                         Call Us To Take this service
                                     </p>
-                                    <a href="https://wa.me/923001234567"
+                                    <a href="https://wa.me/923215955791"
                                         style="font-size: 15px; font-weight: 600; color: #222; text-decoration: none;">
                                         0321 5955791
                                     </a>
