@@ -39,10 +39,8 @@
                                 </h4>
 
                                 <div class="site-footer__social">
-                                    <a href="#"><span class="icon-facebook-app-symbol" style="color: white;"></span></a>
-                                    <a href="#"><span class="icon-pinterest" style="color: white;"></span></a>
-                                    <a href="#"><span class="icon-linkedin-big-logo" style="color: white;"></span></a>
-                                    <a href="#"><span class="icon-instagram" style="color: white;"></span></a>
+                                    <a href="https://www.facebook.com/karachicleaners"><span class="icon-facebook-app-symbol" style="color: white;"></span></a>
+                                    <a href="https://www.instagram.com/karachicleaners/"><span class="icon-instagram" style="color: white;"></span></a>
                                 </div>
                             </div>
 

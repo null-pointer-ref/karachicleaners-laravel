@@ -33,9 +33,10 @@
                     <div class="main-menu__top-social-box">
                         <h4 class="main-menu__top-social-title">Follow Us</h4>
                         <div class="main-menu__top-social">
-                            <a href="#"><span class="icon-facebook-app-symbol"></span></a>
-
-                            <a href="#"><span class="icon-instagram"></span></a>
+                            <a href="https://www.facebook.com/karachicleaners"><span
+                                    class="icon-facebook-app-symbol"></span></a>
+                            <a href="https://www.instagram.com/karachicleaners/"><span
+                                    class="icon-instagram"></span></a>
                         </div>
                     </div>
                 </div>
@@ -61,9 +62,9 @@
                                 <li>
                                     <a href="/about">About</a>
                                 </li>
-                                <li>
+                                <!-- <li>
                                     <a href="/gallery">Gallery</a>
-                                </li>
+                                </li> -->
                                 <li>
                                     <a href="/services">Services</a>
                                 </li>
@@ -101,6 +102,3 @@
     <div class="stricky-header stricked-menu main-menu">
         <div class="sticky-header__content"></div><!-- /.sticky-header__content -->
     </div><!-- /.stricky-header -->
-
-
-    
