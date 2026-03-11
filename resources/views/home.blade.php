@@ -783,7 +783,7 @@
                                 </div>
                                 <div class="why-choose-one__content">
                                     <p>Available 24/7 in Karachi</p>
-                                    <h4><a href="tel:+92XXXXXXXXXX">+92 (XXX) XXX XXXX</a></h4>
+                                    <h4><a href="tel:+923215955791">+92 321 5955791</a></h4>
                                 </div>
                             </div>
                         </div>
