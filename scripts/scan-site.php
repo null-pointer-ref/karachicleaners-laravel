@@ -2,8 +2,9 @@
 <?php
 
 /**
- * Site Scanner
- * Scans karachicleaners.com and extracts all URLs
+ * Site Scanner - IMPROVED
+ * Scans karachicleaners.com and extracts only content URLs
+ * Filters out: assets, static files, duplicates, phone links, etc
  */
 
 echo "🔍 Scanning karachicleaners.com for URLs...\n\n";
@@ -17,11 +18,6 @@ $queue = ['/'];
 $maxDepth = 3;
 $timeout = 10;
 $maxUrls = 100;
-
-// Headers for requests
-$headers = [
-    'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-];
 
 echo "Starting scan from: $baseUrl\n";
 echo "Max depth: $maxDepth\n";
@@ -37,6 +33,71 @@ $logContent = "Site Scan Log\n";
 $logContent .= "Date: " . date('Y-m-d H:i:s') . "\n";
 $logContent .= "Base URL: $baseUrl\n";
 $logContent .= "========================================\n\n";
+
+/**
+ * Check if URL should be included in sitemap
+ */
+function shouldIncludeUrl($url, $baseUrl) {
+    // Skip external URLs
+    if (strpos($url, $baseUrl) !== 0) {
+        return false;
+    }
+    
+    // Skip phone/tel links
+    if (preg_match('/\/tel:/i', $url)) {
+        return false;
+    }
+    
+    // Skip email/mailto links
+    if (preg_match('/mailto:/i', $url)) {
+        return false;
+    }
+    
+    // Skip asset files
+    if (preg_match('/\.(css|js|png|jpg|jpeg|gif|webp|svg|ttf|woff|woff2|eot|ico)$/i', $url)) {
+        return false;
+    }
+    
+    // Skip .html files (keep clean URLs)
+    if (preg_match('/\.html$/i', $url)) {
+        return false;
+    }
+    
+    // Skip admin/private paths
+    if (preg_match('#/(admin|private|api|vendor|node_modules|storage|config|logs)/#i', $url)) {
+        return false;
+    }
+    
+    // Skip query parameters
+    if (strpos($url, '?') !== false) {
+        return false;
+    }
+    
+    // Skip anchors/fragments
+    if (strpos($url, '#') !== false) {
+        return false;
+    }
+    
+    return true;
+}
+
+/**
+ * Normalize URL for deduplication
+ */
+function normalizeUrl($url) {
+    $url = rtrim($url, '/');
+    
+    // Convert root to /
+    if ($url === 'https://karachicleaners.com' || $url === 'https://www.karachicleaners.com') {
+        return 'https://karachicleaners.com/';
+    }
+    
+    // Remove .html extension for comparison
+    $url = preg_replace('/\.html$/', '', $url);
+    $url = preg_replace('/\/index$/', '', $url);
+    
+    return $url;
+}
 
 /**
  * Fetch and extract URLs from a page
@@ -72,13 +133,13 @@ function extractUrls($url, $baseUrl) {
     // Extract href links
     if (preg_match_all('/href=["\']([^"\']+)["\']/', $response, $matches)) {
         foreach ($matches[1] as $link) {
-            // Skip external links
+            // Skip external links (except this domain)
             if (strpos($link, 'http') === 0 && strpos($link, $baseUrl) === false) {
                 continue;
             }
             
-            // Skip email, javascript, etc
-            if (strpos($link, 'mailto:') === 0 || strpos($link, 'javascript:') === 0 || strpos($link, '#') === 0) {
+            // Skip email, javascript, anchors
+            if (preg_match('/^(mailto:|javascript:|#|tel:)/', $link)) {
                 continue;
             }
             
@@ -92,9 +153,6 @@ function extractUrls($url, $baseUrl) {
             // Remove fragments
             $link = strtok($link, '#');
             
-            // Remove query strings
-            $link = strtok($link, '?');
-            
             // Only keep URLs from this domain
             if (strpos($link, $baseUrl) === 0) {
                 $urls[] = $link;
@@ -103,17 +161,6 @@ function extractUrls($url, $baseUrl) {
     }
     
     return array_unique($urls);
-}
-
-/**
- * Normalize URL for comparison
- */
-function normalizeUrl($url) {
-    $url = rtrim($url, '/');
-    if ($url === 'https://karachicleaners.com' || $url === 'https://www.karachicleaners.com') {
-        return 'https://karachicleaners.com/';
-    }
-    return $url;
 }
 
 // BFS scanning
@@ -142,7 +189,8 @@ while (count($queue) > 0 && count($scannedUrls) < $maxUrls && $depth < $maxDepth
         foreach ($foundUrls as $foundUrl) {
             $normalized = normalizeUrl($foundUrl);
             
-            if (!isset($visited[$normalized]) && count($scannedUrls) < $maxUrls) {
+            // Check if should be included AND not already visited
+            if (shouldIncludeUrl($foundUrl, $baseUrl) && !isset($visited[$normalized]) && count($scannedUrls) < $maxUrls) {
                 $scannedUrls[$normalized] = true;
                 
                 // Add to queue for next level
@@ -165,10 +213,11 @@ sort($finalUrls);
 echo "\n========================================\n";
 echo "✅ Scan Complete\n";
 echo "========================================\n";
-echo "📊 URLs Found: " . count($finalUrls) . "\n";
-echo "🌍 URLs Scanned: " . count($visited) . "\n\n";
+echo "📊 Content URLs Found: " . count($finalUrls) . "\n";
+echo "🌍 Pages Scanned: " . count($visited) . "\n";
+echo "🚫 URLs Filtered Out: " . (count($visited) - count($finalUrls)) . "\n\n";
 
-echo "URLs List:\n";
+echo "Content URLs:\n";
 foreach ($finalUrls as $index => $url) {
     echo ($index + 1) . ". $url\n";
 }
@@ -178,7 +227,7 @@ $scanDataPath = __DIR__ . '/../storage/scan-logs/urls-' . date('YmdHis') . '.jso
 file_put_contents($scanDataPath, json_encode($finalUrls, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
 $logContent .= "\n========================================\n";
-$logContent .= "Found URLs (" . count($finalUrls) . ")\n";
+$logContent .= "Found Content URLs (" . count($finalUrls) . ")\n";
 $logContent .= "========================================\n";
 foreach ($finalUrls as $url) {
     $logContent .= "$url\n";
