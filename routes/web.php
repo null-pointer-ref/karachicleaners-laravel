@@ -15,9 +15,9 @@ Route::get('/about', function () {
 //     return view('services'); // loads services.blade.php
 // });
 
-Route::get('/gallery', function () {
-    return view('gallery');
-});
+// Route::get('/gallery', function () {
+//     return view('gallery');
+// });
 
 Route::get('/contact', function () {
     return view('contact');
